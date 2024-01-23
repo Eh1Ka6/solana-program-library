@@ -23,6 +23,7 @@ use {
             permanent_delegate::PermanentDelegate,
             transfer_fee::{TransferFeeAmount, TransferFeeConfig},
             transfer_hook::{TransferHook, TransferHookAccount},
+            rebase_mint::RebaseMintConfig
         },
         state::{Account, Mint, Multisig},
     },
@@ -82,6 +83,8 @@ pub mod token_metadata;
 pub mod transfer_fee;
 /// Transfer Hook extension
 pub mod transfer_hook;
+/// Elastic supply mint
+pub mod rebase_mint;
 
 /// Length in TLV structure
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
@@ -928,6 +931,8 @@ pub enum ExtensionType {
     NonTransferable,
     /// Tokens accrue interest over time,
     InterestBearingConfig,
+    /// Tokens value based on elastic supply,
+    RebaseMintConfig,
     /// Locks privileged token operations from happening via CPI
     CpiGuard,
     /// Includes an optional permanent delegate
@@ -1047,6 +1052,7 @@ impl ExtensionType {
             ExtensionType::MintPaddingTest => pod_get_packed_len::<MintPaddingTest>(),
             #[cfg(test)]
             ExtensionType::VariableLenMintTest => unreachable!(),
+            ExtensionType::RebaseMintConfig => pod_get_packed_len::<RebaseMintConfig>(),
         })
     }
 
@@ -1112,6 +1118,7 @@ impl ExtensionType {
             | ExtensionType::NonTransferableAccount
             | ExtensionType::TransferHookAccount
             | ExtensionType::CpiGuard
+            | ExtensionType::RebaseMintConfig 
             | ExtensionType::ConfidentialTransferFeeAmount => AccountType::Account,
             #[cfg(test)]
             ExtensionType::VariableLenMintTest => AccountType::Mint,

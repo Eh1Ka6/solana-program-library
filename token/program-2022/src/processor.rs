@@ -15,6 +15,7 @@ use {
             group_pointer::{self, GroupPointer},
             immutable_owner::ImmutableOwner,
             interest_bearing_mint::{self, InterestBearingConfig},
+            rebase_mint::{self, RebaseMintConfig},
             memo_transfer::{self, check_previous_sibling_instruction_is_memo, memo_required},
             metadata_pointer::{self, MetadataPointer},
             mint_close_authority::MintCloseAuthority,
@@ -786,6 +787,7 @@ impl Processor {
                     )?;
                     extension.rate_authority = new_authority.try_into()?;
                 }
+                // add an authority type for RebaseMint
                 AuthorityType::PermanentDelegate => {
                     let extension = mint.get_extension_mut::<PermanentDelegate>()?;
                     let maybe_delegate: Option<Pubkey> = extension.delegate.into();
@@ -1324,13 +1326,18 @@ impl Processor {
         let mint_data = mint_info.data.borrow();
         let mint = StateWithExtensions::<Mint>::unpack(&mint_data)
             .map_err(|_| Into::<ProgramError>::into(TokenError::InvalidMint))?;
-        let ui_amount = if let Ok(extension) = mint.get_extension::<InterestBearingConfig>() {
-            let unix_timestamp = Clock::get()?.unix_timestamp;
-            extension
-                .amount_to_ui_amount(amount, mint.base.decimals, unix_timestamp)
-                .ok_or(ProgramError::InvalidArgument)?
+        let ui_amount = if let Ok(interest_bearing_extension) = mint.get_extension::<InterestBearingConfig>() {
+        let unix_timestamp = Clock::get()?.unix_timestamp;
+        interest_bearing_extension
+            .amount_to_ui_amount(amount, mint.base.decimals, unix_timestamp)
+            .ok_or(ProgramError::InvalidArgument)?
+         } else if let Ok(rebase_extension) = mint.get_extension::<RebaseMintConfig>() {
+        // Logic to calculate UI amount using the rebase configuration
+        // This is a placeholder for your logic:
+            rebase_extension.shares_to_ui_amount(amount, mint.base.decimals)
+            .ok_or(ProgramError::InvalidArgument)?
         } else {
-            crate::amount_to_ui_amount_string_trimmed(amount, mint.base.decimals)
+              crate::amount_to_ui_amount_string_trimmed(amount, mint.base.decimals)
         };
 
         set_return_data(&ui_amount.into_bytes());
@@ -1346,9 +1353,13 @@ impl Processor {
         let mint_data = mint_info.data.borrow();
         let mint = StateWithExtensions::<Mint>::unpack(&mint_data)
             .map_err(|_| Into::<ProgramError>::into(TokenError::InvalidMint))?;
-        let amount = if let Ok(extension) = mint.get_extension::<InterestBearingConfig>() {
+        let amount = if let Ok(interest_bearing_extension) = mint.get_extension::<InterestBearingConfig>() {
             let unix_timestamp = Clock::get()?.unix_timestamp;
-            extension.try_ui_amount_into_amount(ui_amount, mint.base.decimals, unix_timestamp)?
+            interest_bearing_extension.try_ui_amount_into_amount(ui_amount, mint.base.decimals, unix_timestamp)?
+        } else if let Ok(rebase_extension) = mint.get_extension::<RebaseMintConfig>() {
+                // Logic to convert UI amount to raw amount using the rebase configuration
+                // This is a placeholder for your logic:
+            rebase_extension.try_ui_amount_into_shares(ui_amount, mint.base.decimals)?
         } else {
             crate::try_ui_amount_into_amount(ui_amount.to_string(), mint.base.decimals)?
         };
@@ -1704,6 +1715,13 @@ impl Processor {
                 }
                 TokenInstruction::GroupMemberPointerExtension => {
                     group_member_pointer::processor::process_instruction(
+                        program_id,
+                        accounts,
+                        &input[1..],
+                    )
+                }
+                TokenInstruction::RebaseMintExtension => {
+                    rebase_mint::processor::process_instruction(
                         program_id,
                         accounts,
                         &input[1..],

@@ -631,6 +631,13 @@ pub enum TokenInstruction<'a> {
     /// further details about the extended instructions that share this
     /// instruction prefix
     InterestBearingMintExtension,
+    /// The common instruction prefix for Interest Bearing extension
+    /// instructions.
+    ///
+    /// See `extension::interest_bearing_mint::instruction::InterestBearingMintInstruction` for
+    /// further details about the extended instructions that share this
+    /// instruction prefix
+    RebaseMintExtension,
     /// The common instruction prefix for CPI Guard account extension
     /// instructions.
     ///
@@ -842,6 +849,7 @@ impl<'a> TokenInstruction<'a> {
             39 => Self::MetadataPointerExtension,
             40 => Self::GroupPointerExtension,
             41 => Self::GroupMemberPointerExtension,
+            42 => Self::RebaseMintExtension,
             _ => return Err(TokenError::InvalidInstruction.into()),
         })
     }
@@ -1013,6 +1021,9 @@ impl<'a> TokenInstruction<'a> {
             }
             &Self::GroupMemberPointerExtension => {
                 buf.push(41);
+            }
+            &Self::RebaseMintExtension => {
+                buf.push(42);
             }
         };
         buf
