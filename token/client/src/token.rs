@@ -44,6 +44,7 @@ use {
             },
             cpi_guard, default_account_state, group_member_pointer, group_pointer,
             interest_bearing_mint, memo_transfer, metadata_pointer, transfer_fee, transfer_hook,
+            rebase_mint,
             BaseStateWithExtensions, Extension, ExtensionType, StateWithExtensionsOwned,
         },
         instruction, offchain,
@@ -156,6 +157,10 @@ pub enum ExtensionInitializationParams {
         rate_authority: Option<Pubkey>,
         rate: i16,
     },
+    RebaseMintConfig {
+        supply_authority: Option<Pubkey>,
+        initial_supply: Option<u64>,
+    },
     NonTransferable,
     PermanentDelegate {
         delegate: Pubkey,
@@ -190,6 +195,7 @@ impl ExtensionInitializationParams {
             Self::MintCloseAuthority { .. } => ExtensionType::MintCloseAuthority,
             Self::TransferFeeConfig { .. } => ExtensionType::TransferFeeConfig,
             Self::InterestBearingConfig { .. } => ExtensionType::InterestBearingConfig,
+            Self::RebaseMintConfig { .. } => ExtensionType::RebaseMintConfig,
             Self::NonTransferable => ExtensionType::NonTransferable,
             Self::PermanentDelegate { .. } => ExtensionType::PermanentDelegate,
             Self::TransferHook { .. } => ExtensionType::TransferHook,
@@ -254,6 +260,15 @@ impl ExtensionInitializationParams {
                 mint,
                 rate_authority,
                 rate,
+            ),
+            Self::RebaseMintConfig {
+                supply_authority,
+                initial_supply,
+            } => rebase_mint::instruction::initialize(
+                token_program_id,
+                mint,
+                initial_supply,
+                supply_authority,
             ),
             Self::NonTransferable => {
                 instruction::initialize_non_transferable_mint(token_program_id, mint)
@@ -1703,6 +1718,29 @@ where
                 authority,
                 &multisig_signers,
                 new_rate,
+            )?],
+            signing_keypairs,
+        )
+        .await
+    }
+
+    /// Update interest rate
+    pub async fn update_supply<S: Signers>(
+        &self,
+        authority: &Pubkey,
+        new_supply: u64,
+        signing_keypairs: &S,
+    ) -> TokenResult<T::Output> {
+        let signing_pubkeys = signing_keypairs.pubkeys();
+        let multisig_signers = self.get_multisig_signers(authority, &signing_pubkeys);
+
+        self.process_ixs(
+            &[rebase_mint::instruction::update_supply(
+                &self.program_id,
+                self.get_address(),
+                authority,
+                &multisig_signers,
+                new_supply,
             )?],
             signing_keypairs,
         )

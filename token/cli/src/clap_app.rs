@@ -77,6 +77,7 @@ pub enum CommandName {
     CreateMultisig,
     Authorize,
     SetInterestRate,
+    UpdateSupply,
     Transfer,
     Burn,
     Mint,
@@ -673,6 +674,16 @@ pub fn app<'a, 'b>(
                         ),
                 )
                 .arg(
+                    Arg::with_name("initial_supply")
+                        .long("initial-supply")
+                        .value_name("SUPPLY_BPS")
+                        .takes_value(true)
+                        .help(
+                            "Specify the interest supply  \
+                            Rate authority defaults to the mint authority."
+                        ),
+                )
+                .arg(
                     Arg::with_name("metadata_address")
                         .long("metadata-address")
                         .value_name("ADDRESS")
@@ -812,6 +823,36 @@ pub fn app<'a, 'b>(
                 .arg(
                     Arg::with_name("rate_authority")
                     .long("rate-authority")
+                    .validator(is_valid_signer)
+                    .value_name("SIGNER")
+                    .takes_value(true)
+                    .help(
+                        "Specify the rate authority keypair. \
+                        Defaults to the client keypair address."
+                    )
+                )
+        )
+        .subcommand(
+            SubCommand::with_name(CommandName::UpdateSupply.into())
+                .about("Set rebase_supply an elastic token")
+                .arg(
+                    Arg::with_name("token")
+                        .validator(is_valid_pubkey)
+                        .value_name("TOKEN_MINT_ADDRESS")
+                        .takes_value(true)
+                        .required(true)
+                        .help("The interest-bearing token address"),
+                )
+                .arg(
+                    Arg::with_name("new_supply")
+                        .value_name("SUPPLY")
+                        .takes_value(true)
+                        .required(true)
+                        .help("The new interest rate in basis points"),
+                )
+                .arg(
+                    Arg::with_name("supply_authority")
+                    .long("supply-authority")
                     .validator(is_valid_signer)
                     .value_name("SIGNER")
                     .takes_value(true)
