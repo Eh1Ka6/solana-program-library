@@ -1345,8 +1345,6 @@ impl Processor {
             .amount_to_ui_amount(amount, mint.base.decimals, unix_timestamp)
             .ok_or(ProgramError::InvalidArgument)?
          } else if let Ok(rebase_extension) = mint.get_extension::<RebaseMintConfig>() {
-        // Logic to calculate UI amount using the rebase configuration
-        // This is a placeholder for your logic:
             rebase_extension.shares_to_ui_amount(amount, mint.base.decimals)
             .ok_or(ProgramError::InvalidArgument)?
         } else {
@@ -1370,8 +1368,6 @@ impl Processor {
             let unix_timestamp = Clock::get()?.unix_timestamp;
             interest_bearing_extension.try_ui_amount_into_amount(ui_amount, mint.base.decimals, unix_timestamp)?
         } else if let Ok(rebase_extension) = mint.get_extension::<RebaseMintConfig>() {
-                // Logic to convert UI amount to raw amount using the rebase configuration
-                // This is a placeholder for your logic:
             rebase_extension.try_ui_amount_into_shares(ui_amount, mint.base.decimals)?
         } else {
             crate::try_ui_amount_into_amount(ui_amount.to_string(), mint.base.decimals)?

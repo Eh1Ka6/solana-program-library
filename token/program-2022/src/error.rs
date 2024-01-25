@@ -238,6 +238,9 @@ pub enum TokenError {
     /// Ciphertext is malformed
     #[error("Ciphertext is malformed")]
     MalformedCiphertext,
+    /// Invalid new supply
+    #[error("Invalid new Supply")]
+    InvalidSupply,
 
     // 60
     /// Ciphertext arithmetic failed
@@ -416,6 +419,9 @@ impl PrintProgramError for TokenError {
                 msg!("Ciphertext is malformed")
             }
             TokenError::CiphertextArithmeticFailed => {
+                msg!("Ciphertext arithmetic failed")
+            }
+            TokenError::InvalidSupply => {
                 msg!("Ciphertext arithmetic failed")
             }
         }

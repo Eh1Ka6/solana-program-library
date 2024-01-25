@@ -23,11 +23,13 @@ pub mod processor;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
 pub struct RebaseMintConfig {
     /// Total supply of the token
-    pub total_supply: i16,
+    pub total_supply: u16,
     /// Total shares of the token
-    pub total_shares: i16,
+    pub total_shares: u16,
     /// Authority that can set the supply and authority
     pub supply_authority: OptionalNonZeroPubkey,
+    /// Keeps track of rounding errors
+    pub accumulated_rounding_error: u16
 }
 
 impl RebaseMintConfig {
@@ -118,8 +120,8 @@ impl Extension for RebaseMintConfig {
 mod tests {
     use super::*;
 
-    const TEST_TOTAL_SUPPLY: u64 = 1000;
-    const TEST_TOTAL_SHARES: u64 = 500;
+    const TEST_TOTAL_SUPPLY: u16 = 1000;
+    const TEST_TOTAL_SHARES: u16 = 500;
     const TEST_DECIMALS: u8 = 2;
 
     #[test]
@@ -128,6 +130,7 @@ mod tests {
             total_supply: TEST_TOTAL_SUPPLY,
             total_shares: TEST_TOTAL_SHARES,
             supply_authority: OptionalNonZeroPubkey::default(),
+            accumulated_rounding_error: 0 as u16
         };
 
         assert_eq!(config.amount_to_shares(500), 250); // 1:2 ratio
@@ -141,6 +144,7 @@ mod tests {
             total_supply: TEST_TOTAL_SUPPLY,
             total_shares: TEST_TOTAL_SHARES,
             supply_authority: OptionalNonZeroPubkey::default(),
+            accumulated_rounding_error: 0 as u16
         };
 
         assert_eq!(config.shares_to_amount(250), 500); // 2:1 ratio
@@ -154,6 +158,7 @@ mod tests {
             total_supply: TEST_TOTAL_SUPPLY,
             total_shares: TEST_TOTAL_SHARES,
             supply_authority: OptionalNonZeroPubkey::default(),
+            accumulated_rounding_error: 0 as u16
         };
 
         assert_eq!(config.shares_to_ui_amount(250, TEST_DECIMALS), Some("5".to_string()));
@@ -167,6 +172,7 @@ mod tests {
             total_supply: TEST_TOTAL_SUPPLY,
             total_shares: TEST_TOTAL_SHARES,
             supply_authority: OptionalNonZeroPubkey::default(),
+            accumulated_rounding_error: 0 as u16
         };
 
         assert_eq!(config.try_ui_amount_into_shares("5", TEST_DECIMALS).unwrap(), 250);

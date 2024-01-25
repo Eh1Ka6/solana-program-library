@@ -159,7 +159,7 @@ pub enum ExtensionInitializationParams {
     },
     RebaseMintConfig {
         supply_authority: Option<Pubkey>,
-        initial_supply: i16,
+        initial_supply: u16,
     },
     NonTransferable,
     PermanentDelegate {
@@ -1728,7 +1728,7 @@ where
     pub async fn update_supply<S: Signers>(
         &self,
         authority: &Pubkey,
-        new_supply: i16,
+        new_supply: u16,
         signing_keypairs: &S,
     ) -> TokenResult<T::Output> {
         let signing_pubkeys = signing_keypairs.pubkeys();
