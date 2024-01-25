@@ -159,7 +159,7 @@ pub enum ExtensionInitializationParams {
     },
     RebaseMintConfig {
         supply_authority: Option<Pubkey>,
-        initial_supply: Option<u64>,
+        initial_supply: i16,
     },
     NonTransferable,
     PermanentDelegate {
@@ -267,8 +267,8 @@ impl ExtensionInitializationParams {
             } => rebase_mint::instruction::initialize(
                 token_program_id,
                 mint,
-                initial_supply,
                 supply_authority,
+                initial_supply,
             ),
             Self::NonTransferable => {
                 instruction::initialize_non_transferable_mint(token_program_id, mint)
@@ -1724,11 +1724,11 @@ where
         .await
     }
 
-    /// Update interest rate
+    /// Rebase Supply
     pub async fn update_supply<S: Signers>(
         &self,
         authority: &Pubkey,
-        new_supply: u64,
+        new_supply: i16,
         signing_keypairs: &S,
     ) -> TokenResult<T::Output> {
         let signing_pubkeys = signing_keypairs.pubkeys();

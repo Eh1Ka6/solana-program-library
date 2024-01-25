@@ -787,7 +787,20 @@ impl Processor {
                     )?;
                     extension.rate_authority = new_authority.try_into()?;
                 }
-                // add an authority type for RebaseMint
+                AuthorityType::RebaseMint => {
+                    let extension = mint.get_extension_mut::<RebaseMintConfig>()?;
+                    let maybe_supply_authority: Option<Pubkey> = extension.supply_authority.into();
+                    let supply_authority =
+                        maybe_supply_authority.ok_or(TokenError::AuthorityTypeNotSupported)?;
+                    Self::validate_owner(
+                        program_id,
+                        &supply_authority,
+                        authority_info,
+                        authority_info_data_len,
+                        account_info_iter.as_slice(),
+                    )?;
+                    extension.supply_authority = new_authority.try_into()?;
+                }
                 AuthorityType::PermanentDelegate => {
                     let extension = mint.get_extension_mut::<PermanentDelegate>()?;
                     let maybe_delegate: Option<Pubkey> = extension.delegate.into();
@@ -1682,6 +1695,13 @@ impl Processor {
                         &input[1..],
                     )
                 }
+                TokenInstruction::RebaseMintExtension => {
+                    rebase_mint::processor::process_instruction(
+                        program_id,
+                        accounts,
+                        &input[1..],
+                    )
+                }
                 TokenInstruction::CpiGuardExtension => {
                     cpi_guard::processor::process_instruction(program_id, accounts, &input[1..])
                 }
@@ -1720,13 +1740,7 @@ impl Processor {
                         &input[1..],
                     )
                 }
-                TokenInstruction::RebaseMintExtension => {
-                    rebase_mint::processor::process_instruction(
-                        program_id,
-                        accounts,
-                        &input[1..],
-                    )
-                }
+               
             }
         } else if let Ok(instruction) = TokenMetadataInstruction::unpack(input) {
             token_metadata::processor::process_instruction(program_id, accounts, instruction)

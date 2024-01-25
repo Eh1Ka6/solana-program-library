@@ -166,3 +166,17 @@ fn serde_instruction_basis_points() {
 
     serde_json::from_str::<InitializeInstructionData>(&serialized_expected).unwrap();
 }
+
+#[test]
+    fn serde_instruction_rebase_mint() {
+        let inst = InitializeRebaseMintData {
+            supply_authority: OptionalNonZeroPubkey::default(),
+            initial_supply: 1000,
+        };
+
+        let serialized = serde_json::to_string(&inst).unwrap();
+        let serialized_expected = "{\"supplyAuthority\":null,\"initialSupply\":1000}";
+        assert_eq!(&serialized, serialized_expected);
+
+        serde_json::from_str::<InitializeRebaseMintData>(&serialized_expected).unwrap();
+    }

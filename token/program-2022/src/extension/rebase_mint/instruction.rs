@@ -62,18 +62,19 @@ pub enum RebaseMintInstruction {
 #[derive(Clone, Copy, Pod, Zeroable)]
 #[repr(C)]
 pub struct InitializeInstructionData {
-    /// The initial supply of the token.
-    pub initial_supply: u64,
-     /// The euthorized multisig adresse authorized to rebase the supply.
+   
+    /// The euthorized multisig adresse authorized to rebase the supply.
     pub supply_authority: OptionalNonZeroPubkey,
+    /// The initial supply of the token.
+    pub initial_supply: i16,
 }
 
 /// Create an `Initialize` instruction
 pub fn initialize(
     token_program_id: &Pubkey,
     mint: &Pubkey,
-    initial_supply: Option<u64>,
     supply_authority: Option<Pubkey>,
+    initial_supply: i16,
 ) -> Result<Instruction, ProgramError> {
     check_program_account(token_program_id)?;
     let accounts = vec![AccountMeta::new(*mint, false)];
@@ -85,7 +86,7 @@ pub fn initialize(
         &InitializeInstructionData {
             // add here optional instruction
             supply_authority: supply_authority.try_into()?,
-            initial_supply:initial_supply.unwrap_or(0)
+            initial_supply: initial_supply
         },
     ))
 }
@@ -97,7 +98,7 @@ pub fn initialize(
 #[repr(C)]
 pub struct RebaseSupplyData {
     /// The new total supply for the token.
-    pub new_supply: u64,
+    pub new_supply: i16,
 }
 /// Create an `UpdateSupply` instruction
 pub fn update_supply(
@@ -105,7 +106,7 @@ pub fn update_supply(
     mint: &Pubkey,
     supply_authority: &Pubkey,
     signers: &[&Pubkey],
-    new_supply: u64,
+    new_supply: i16,
     
 ) -> Result<Instruction, ProgramError> {
     check_program_account(token_program_id)?;

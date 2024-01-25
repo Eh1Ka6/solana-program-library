@@ -634,7 +634,7 @@ pub enum TokenInstruction<'a> {
     /// The common instruction prefix for Interest Bearing extension
     /// instructions.
     ///
-    /// See `extension::interest_bearing_mint::instruction::InterestBearingMintInstruction` for
+    /// See `extension::rebase_mint::instruction::InterestBearingMintInstruction` for
     /// further details about the extended instructions that share this
     /// instruction prefix
     RebaseMintExtension,
@@ -838,6 +838,7 @@ impl<'a> TokenInstruction<'a> {
             31 => Self::CreateNativeMint,
             32 => Self::InitializeNonTransferableMint,
             33 => Self::InterestBearingMintExtension,
+           
             34 => Self::CpiGuardExtension,
             35 => {
                 let (delegate, _rest) = Self::unpack_pubkey(rest)?;
@@ -850,6 +851,7 @@ impl<'a> TokenInstruction<'a> {
             40 => Self::GroupPointerExtension,
             41 => Self::GroupMemberPointerExtension,
             42 => Self::RebaseMintExtension,
+            
             _ => return Err(TokenError::InvalidInstruction.into()),
         })
     }
@@ -1107,6 +1109,8 @@ pub enum AuthorityType {
     CloseMint,
     /// Authority to set the interest rate
     InterestRate,
+    /// Authority to set the rebaseMint
+    RebaseMint,
     /// Authority to transfer or burn any tokens for a mint
     PermanentDelegate,
     /// Authority to update confidential transfer mint and aprove accounts for
@@ -1142,6 +1146,7 @@ impl AuthorityType {
             AuthorityType::MetadataPointer => 12,
             AuthorityType::GroupPointer => 13,
             AuthorityType::GroupMemberPointer => 14,
+            AuthorityType::RebaseMint => 15,
         }
     }
 
@@ -1162,6 +1167,7 @@ impl AuthorityType {
             12 => Ok(AuthorityType::MetadataPointer),
             13 => Ok(AuthorityType::GroupPointer),
             14 => Ok(AuthorityType::GroupMemberPointer),
+            15 => Ok(AuthorityType::RebaseMint),
             _ => Err(TokenError::InvalidInstruction.into()),
         }
     }

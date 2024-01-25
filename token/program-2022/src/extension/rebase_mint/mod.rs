@@ -23,9 +23,9 @@ pub mod processor;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
 pub struct RebaseMintConfig {
     /// Total supply of the token
-    pub total_supply: u64,
+    pub total_supply: i16,
     /// Total shares of the token
-    pub total_shares: u64,
+    pub total_shares: i16,
     /// Authority that can set the supply and authority
     pub supply_authority: OptionalNonZeroPubkey,
 }
@@ -114,3 +114,67 @@ impl Extension for RebaseMintConfig {
     // Additional implementation details for the extension
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEST_TOTAL_SUPPLY: u64 = 1000;
+    const TEST_TOTAL_SHARES: u64 = 500;
+    const TEST_DECIMALS: u8 = 2;
+
+    #[test]
+    fn test_amount_to_shares() {
+        let config = RebaseMintConfig {
+            total_supply: TEST_TOTAL_SUPPLY,
+            total_shares: TEST_TOTAL_SHARES,
+            supply_authority: OptionalNonZeroPubkey::default(),
+        };
+
+        assert_eq!(config.amount_to_shares(500), 250); // 1:2 ratio
+        assert_eq!(config.amount_to_shares(0), 0); // edge case
+        // Add more test cases as needed
+    }
+
+    #[test]
+    fn test_shares_to_amount() {
+        let config = RebaseMintConfig {
+            total_supply: TEST_TOTAL_SUPPLY,
+            total_shares: TEST_TOTAL_SHARES,
+            supply_authority: OptionalNonZeroPubkey::default(),
+        };
+
+        assert_eq!(config.shares_to_amount(250), 500); // 2:1 ratio
+        assert_eq!(config.shares_to_amount(0), 0); // edge case
+        // Add more test cases as needed
+    }
+
+    #[test]
+    fn test_shares_to_ui_amount() {
+        let config = RebaseMintConfig {
+            total_supply: TEST_TOTAL_SUPPLY,
+            total_shares: TEST_TOTAL_SHARES,
+            supply_authority: OptionalNonZeroPubkey::default(),
+        };
+
+        assert_eq!(config.shares_to_ui_amount(250, TEST_DECIMALS), Some("5".to_string()));
+        assert_eq!(config.shares_to_ui_amount(0, TEST_DECIMALS), Some("0".to_string()));
+        // Add more test cases as needed
+    }
+
+    #[test]
+    fn test_try_ui_amount_into_shares() {
+        let config = RebaseMintConfig {
+            total_supply: TEST_TOTAL_SUPPLY,
+            total_shares: TEST_TOTAL_SHARES,
+            supply_authority: OptionalNonZeroPubkey::default(),
+        };
+
+        assert_eq!(config.try_ui_amount_into_shares("5", TEST_DECIMALS).unwrap(), 250);
+        assert_eq!(config.try_ui_amount_into_shares("0", TEST_DECIMALS).unwrap(), 0);
+        // Test for invalid ui_amount
+        assert!(config.try_ui_amount_into_shares("invalid", TEST_DECIMALS).is_err());
+        // Add more test cases as needed
+    }
+
+    // Additional tests can include edge cases, error scenarios, large values, etc.
+}

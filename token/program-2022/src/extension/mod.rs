@@ -1102,6 +1102,7 @@ impl ExtensionType {
             | ExtensionType::DefaultAccountState
             | ExtensionType::NonTransferable
             | ExtensionType::InterestBearingConfig
+            | ExtensionType::RebaseMintConfig 
             | ExtensionType::PermanentDelegate
             | ExtensionType::TransferHook
             | ExtensionType::ConfidentialTransferFeeConfig
@@ -1118,7 +1119,6 @@ impl ExtensionType {
             | ExtensionType::NonTransferableAccount
             | ExtensionType::TransferHookAccount
             | ExtensionType::CpiGuard
-            | ExtensionType::RebaseMintConfig 
             | ExtensionType::ConfidentialTransferFeeAmount => AccountType::Account,
             #[cfg(test)]
             ExtensionType::VariableLenMintTest => AccountType::Mint,

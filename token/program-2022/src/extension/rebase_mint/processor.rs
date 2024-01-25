@@ -1,5 +1,6 @@
 use crate::{
     error::TokenError,
+    check_program_account,
     extension::{
         rebase_mint::{
             instruction::{RebaseMintInstruction, InitializeInstructionData, RebaseSupplyData},
@@ -11,6 +12,7 @@ use crate::{
     state::Mint,
     processor::Processor,
 };
+use spl_pod::optional_keys::OptionalNonZeroPubkey;
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -21,7 +23,8 @@ use solana_program::{
 fn process_initialize(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    init_data: &InitializeInstructionData,
+    supply_authority: &OptionalNonZeroPubkey,
+    initial_supply: &i16,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
     let mint_account_info = next_account_info(account_info_iter)?;
@@ -29,7 +32,8 @@ fn process_initialize(
     let mut mint = StateWithExtensionsMut::<Mint>::unpack_uninitialized(&mut mint_data)?;
 
     let extension = mint.init_extension::<RebaseMintConfig>(true)?;
-    extension.total_supply = init_data.initial_supply;
+    extension.total_supply = *initial_supply;
+    extension.supply_authority = *supply_authority;
     Ok(())
 }
 
@@ -55,8 +59,6 @@ fn process_rebase_supply(
         account_info_iter.as_slice(),
     )?;
 
-    let mut mint_data = mint_account_info.data.borrow_mut();
-    let mut mint = StateWithExtensionsMut::<Mint>::unpack(&mut mint_data)?;
     extension.total_supply = data.new_supply;
 
 
@@ -68,14 +70,15 @@ pub(crate) fn process_instruction(
     accounts: &[AccountInfo],
     input: &[u8],
 ) -> ProgramResult {
-
-    //check_program_account(program_id)?;
-    // here check against our own program account
+    check_program_account(program_id)?;
     match decode_instruction_type(input)? {
         RebaseMintInstruction::Initialize => {
             msg!("RebaseMintInstruction::Initialize");
-            let init_data = decode_instruction_data(input)?;
-            process_initialize(program_id, accounts, &init_data)
+            let InitializeInstructionData {
+                supply_authority,
+                initial_supply,
+            } = decode_instruction_data(input)?;
+            process_initialize(program_id, accounts,supply_authority, initial_supply)
         }
         RebaseMintInstruction::RebaseSupply => {
             msg!("RebaseMintInstruction::RebaseSupply");

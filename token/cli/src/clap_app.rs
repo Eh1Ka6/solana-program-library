@@ -184,6 +184,7 @@ pub enum CliAuthorityType {
     TransferFeeConfig,
     WithheldWithdraw,
     InterestRate,
+    RebaseMint,
     PermanentDelegate,
     ConfidentialTransferMint,
     TransferHookProgramId,
@@ -206,6 +207,7 @@ impl TryFrom<CliAuthorityType> for AuthorityType {
             CliAuthorityType::TransferFeeConfig => Ok(AuthorityType::TransferFeeConfig),
             CliAuthorityType::WithheldWithdraw => Ok(AuthorityType::WithheldWithdraw),
             CliAuthorityType::InterestRate => Ok(AuthorityType::InterestRate),
+            CliAuthorityType::RebaseMint => Ok(AuthorityType::RebaseMint),
             CliAuthorityType::PermanentDelegate => Ok(AuthorityType::PermanentDelegate),
             CliAuthorityType::ConfidentialTransferMint => {
                 Ok(AuthorityType::ConfidentialTransferMint)
@@ -676,7 +678,7 @@ pub fn app<'a, 'b>(
                 .arg(
                     Arg::with_name("initial_supply")
                         .long("initial-supply")
-                        .value_name("SUPPLY_BPS")
+                        .value_name("SUPPLY")
                         .takes_value(true)
                         .help(
                             "Specify the interest supply  \
@@ -841,14 +843,14 @@ pub fn app<'a, 'b>(
                         .value_name("TOKEN_MINT_ADDRESS")
                         .takes_value(true)
                         .required(true)
-                        .help("The interest-bearing token address"),
+                        .help("The rebase mint token address"),
                 )
                 .arg(
                     Arg::with_name("new_supply")
                         .value_name("SUPPLY")
                         .takes_value(true)
                         .required(true)
-                        .help("The new interest rate in basis points"),
+                        .help("The new supply value"),
                 )
                 .arg(
                     Arg::with_name("supply_authority")
