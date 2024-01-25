@@ -202,7 +202,7 @@ async fn command_create_token(
     group_address: Option<Pubkey>,
     member_address: Option<Pubkey>,
     rate_bps: Option<i16>,
-    initial_supply: Option<i16>,
+    initial_supply: Option<u16>,
     default_account_state: Option<AccountState>,
     transfer_fee: Option<(u16, u64)>,
     confidential_transfer_auto_approve: Option<bool>,
@@ -469,7 +469,7 @@ async fn command_update_supply(
     config: &Config<'_>,
     token_pubkey: Pubkey,
     supply_authority: Pubkey,
-    new_supply: i16,
+    new_supply: u16,
     bulk_signers: Vec<Arc<dyn Signer>>,
 ) -> CommandResult {
     let token = token_client_from_config(config, &token_pubkey, None)?;
@@ -3492,7 +3492,7 @@ pub async fn process_command<'a>(
                 config.pubkey_or_default(arg_matches, "mint_authority", &mut wallet_manager)?;
             let memo = value_t!(arg_matches, "memo", String).ok();
             let rate_bps = value_t!(arg_matches, "interest_rate", i16).ok();
-            let initial_supply = value_t!(arg_matches, "initial_supply", i16).ok();
+            let initial_supply = value_t!(arg_matches, "initial_supply", u16).ok();
             let metadata_address = value_t!(arg_matches, "metadata_address", Pubkey).ok();
             let group_address = value_t!(arg_matches, "group_address", Pubkey).ok();
             let member_address = value_t!(arg_matches, "member_address", Pubkey).ok();
@@ -3576,7 +3576,7 @@ pub async fn process_command<'a>(
             let token_pubkey = pubkey_of_signer(arg_matches, "token", &mut wallet_manager)
                 .unwrap()
                 .unwrap();
-            let new_supply = value_t_or_exit!(arg_matches, "new_supply", i16);
+            let new_supply = value_t_or_exit!(arg_matches, "new_supply", u16);
             let (supply_authority_signer, supply_authority_pubkey) =
                 config.signer_or_default(arg_matches, "supply_authority", &mut wallet_manager);
             let bulk_signers = vec![supply_authority_signer];
