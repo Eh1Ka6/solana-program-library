@@ -78,6 +78,7 @@ pub enum CommandName {
     Authorize,
     SetInterestRate,
     UpdateSupply,
+    CreateShares,
     Transfer,
     Burn,
     Mint,
@@ -836,6 +837,36 @@ pub fn app<'a, 'b>(
         )
         .subcommand(
             SubCommand::with_name(CommandName::UpdateSupply.into())
+                .about("Set rebase_supply an elastic token")
+                .arg(
+                    Arg::with_name("token")
+                        .validator(is_valid_pubkey)
+                        .value_name("TOKEN_MINT_ADDRESS")
+                        .takes_value(true)
+                        .required(true)
+                        .help("The rebase mint token address"),
+                )
+                .arg(
+                    Arg::with_name("new_supply")
+                        .value_name("SUPPLY")
+                        .takes_value(true)
+                        .required(true)
+                        .help("The new supply value"),
+                )
+                .arg(
+                    Arg::with_name("supply_authority")
+                    .long("supply-authority")
+                    .validator(is_valid_signer)
+                    .value_name("SIGNER")
+                    .takes_value(true)
+                    .help(
+                        "Specify the rate authority keypair. \
+                        Defaults to the client keypair address."
+                    )
+                )
+        )
+        .subcommand(
+            SubCommand::with_name(CommandName::CreateShares.into())
                 .about("Set rebase_supply an elastic token")
                 .arg(
                     Arg::with_name("token")

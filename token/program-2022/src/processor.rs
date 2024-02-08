@@ -1361,6 +1361,7 @@ impl Processor {
         let mint_info = next_account_info(account_info_iter)?;
         check_program_account(mint_info.owner)?;
 
+        
         let mint_data = mint_info.data.borrow();
         let mint = StateWithExtensions::<Mint>::unpack(&mint_data)
             .map_err(|_| Into::<ProgramError>::into(TokenError::InvalidMint))?;

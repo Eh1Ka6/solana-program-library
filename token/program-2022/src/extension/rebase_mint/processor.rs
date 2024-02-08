@@ -3,7 +3,7 @@ use crate::{
     check_program_account,
     extension::{
         rebase_mint::{
-            instruction::{RebaseMintInstruction, InitializeInstructionData, RebaseSupplyData},
+            instruction::{RebaseMintInstruction, InitializeInstructionData, RebaseSupplyData, CreateSharesData},
             RebaseMintConfig,
         },
         StateWithExtensionsMut,
@@ -38,35 +38,35 @@ fn process_initialize(
     Ok(())
 }
 
-fn process_rebase_supply(
+fn process_create_shares(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    data: &RebaseSupplyData,
-) -> ProgramResult {
-    let account_info_iter = &mut accounts.iter();
-    let mint_account_info = next_account_info(account_info_iter)?;
-    let owner_info = next_account_info(account_info_iter)?;
-    let owner_info_data_len = owner_info.data_len();
-    let mut mint_data = mint_account_info.data.borrow_mut();
-    let mut mint = StateWithExtensionsMut::<Mint>::unpack(&mut mint_data)?;
-    let extension = mint.get_extension_mut::<RebaseMintConfig>()?;
-    let supply_authority = Option::<Pubkey>::from(extension.supply_authority).ok_or(TokenError::NoAuthorityExists)?;
-
+    data: &CreateSharesData,) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let mint_account_info = next_account_info(account_info_iter)?;
+        let owner_info = next_account_info(account_info_iter)?;
+        let owner_info_data_len = owner_info.data_len();
+        let mut mint_data = mint_account_info.data.borrow_mut();
+        let mut mint = StateWithExtensionsMut::<Mint>::unpack(&mut mint_data)?;
+        let extension = mint.get_extension_mut::<RebaseMintConfig>()?;
+        let supply_authority = Option::<Pubkey>::from(extension.supply_authority).ok_or(TokenError::NoAuthorityExists)?;
+        Processor::validate_owner(
+            program_id,
+            &supply_authority,
+            owner_info,
+            owner_info_data_len,
+            account_info_iter.as_slice(),
+        )?;
    
-    Processor::validate_owner(
-        program_id,
-        &supply_authority,
-        owner_info,
-        owner_info_data_len,
-        account_info_iter.as_slice(),
-    )?;
-    // Edge case handling: new supply is zero
-    if data.new_supply == 0 {
-        return Err(TokenError::InvalidSupply.into());
+     // Edge case handling: first rebase
+     if extension.total_supply == 0 {
+        extension.total_supply += data.new_supply;
+        extension.total_shares = extension.total_supply;
+        return Ok(());
     }
-       // Calculate the ratio for adjusting total shares
-    let ratio = data.new_supply as f64 / extension.total_supply as f64;
-    let new_total_shares = extension.total_shares as f64 * ratio;
+    // Calculate the ratio for adjusting total shares
+    let ratio = extension.total_shares as f64 / extension.total_supply as f64;
+    let new_total_shares = data.new_supply as f64 * ratio + extension.total_shares as f64;
 
     // Adjusting total shares with accumulated rounding error
     let accumulated_error_as_float = extension.accumulated_rounding_error as f64 / 10_000.0;
@@ -94,7 +94,38 @@ fn process_rebase_supply(
 
     // Update total shares and total supply
     extension.total_shares = rounded_total_shares;
-    extension.total_supply = data.new_supply;
+    extension.total_supply += data.new_supply;
+   
+    Ok(())
+}
+
+fn process_rebase_supply(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    data: &RebaseSupplyData,
+) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let mint_account_info = next_account_info(account_info_iter)?;
+    let owner_info = next_account_info(account_info_iter)?;
+    let owner_info_data_len = owner_info.data_len();
+    let mut mint_data = mint_account_info.data.borrow_mut();
+    let mut mint = StateWithExtensionsMut::<Mint>::unpack(&mut mint_data)?;
+    let extension = mint.get_extension_mut::<RebaseMintConfig>()?;
+    let supply_authority = Option::<Pubkey>::from(extension.supply_authority).ok_or(TokenError::NoAuthorityExists)?;
+
+   
+    Processor::validate_owner(
+        program_id,
+        &supply_authority,
+        owner_info,
+        owner_info_data_len,
+        account_info_iter.as_slice(),
+    )?;
+    // Edge case handling: new supply is zero
+    if data.new_supply == 0 {
+        return Err(TokenError::InvalidSupply.into());
+    }
+    extension.total_supply += data.new_supply;
 
     Ok(())
 }
@@ -118,6 +149,11 @@ pub(crate) fn process_instruction(
             msg!("RebaseMintInstruction::RebaseSupply");
             let new_supply = decode_instruction_data(input)?;
             process_rebase_supply(program_id, accounts, new_supply)
+        }
+        RebaseMintInstruction::CreateShares => {
+            msg!("RebaseMintInstruction::CreateShares");
+            let new_supply = decode_instruction_data(input)?;
+            process_create_shares(program_id, accounts, new_supply)
         }
     }
 }

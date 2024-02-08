@@ -45,8 +45,8 @@ impl RebaseMintConfig {
             // Edge case: If total supply is zero, treat the conversion ratio as 1:1
             amount
         } else {
-            // Calculate the share-to-token ratio and convert the token amount to shares
-            let ratio = self.total_shares as f64 / self.total_supply as f64;
+            let corrected_total_shares = self.total_shares as f64 + (self.accumulated_rounding_error as f64 / 10_000.0);
+            let ratio = corrected_total_shares / self.total_supply as f64;
             (amount as f64 * ratio).round() as u64
         }
     }
@@ -64,7 +64,9 @@ impl RebaseMintConfig {
             shares
         } else {
             // Calculate the token-to-share ratio and convert the shares to token amount
-            let ratio = self.total_supply as f64 / self.total_shares as f64;
+            let corrected_total_shares = self.total_shares as f64 + (self.accumulated_rounding_error as f64 / 10_000.0);
+            
+            let ratio = self.total_supply as f64 / corrected_total_shares as f64;
             (shares as f64 * ratio).round() as u64
         }
     }

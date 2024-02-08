@@ -52,8 +52,22 @@ pub enum RebaseMintInstruction {
     ///   1. `[]` The mint's multisignature supply authority.
     ///   2. ..2+M `[signer]` M signer accounts.
     ///
-
     RebaseSupply,
+    /// Update the total supply. Only supported for mints that include the
+    /// `RebaseMintConfig` extension.
+    ///
+    /// Accounts expected by this instruction:
+    ///
+    ///   * Single authority
+    ///   0. `[writable]` The mint.
+    ///   1. `[signer]` The mint supply authority.
+    ///
+    ///   * Multisignature authority
+    ///   0. `[writable]` The mint.
+    ///   1. `[]` The mint's multisignature supply authority.
+    ///   2. ..2+M `[signer]` M signer accounts.
+    ///
+    CreateShares,
 }
 
 /// Data expected by `RebaseMint::Initialize`
@@ -66,6 +80,7 @@ pub struct InitializeInstructionData {
     /// The euthorized multisig adresse authorized to rebase the supply.
     pub supply_authority: OptionalNonZeroPubkey,
     /// The initial supply contained inside the pool.
+    /// this could be exchanged for a the associated token adress of the pool for the underlying asset 
     pub initial_supply: u16,
 }
 
@@ -126,6 +141,46 @@ pub fn update_supply(
         accounts,
         TokenInstruction::RebaseMintExtension,
         RebaseMintInstruction::RebaseSupply,
+        &data,
+    ))
+}
+
+/// Data expected by `RebaseMint::RebaseSupply`
+#[cfg_attr(feature = "serde-traits", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde-traits", serde(rename_all = "camelCase"))]
+#[derive(Clone, Copy, Pod, Zeroable)]
+#[repr(C)]
+pub struct CreateSharesData {
+    /// The new total supply for the token.
+    pub new_supply: u16,
+}
+
+/// Create an `UpdateSupply` instruction
+pub fn create_shares(
+    token_program_id: &Pubkey,
+    mint: &Pubkey,
+    supply_authority: &Pubkey,
+    signers: &[&Pubkey],
+    new_supply: u16,
+    
+) -> Result<Instruction, ProgramError> {
+    check_program_account(token_program_id)?;
+
+    let mut accounts = vec![
+        AccountMeta::new(*mint, false),
+        AccountMeta::new_readonly(*supply_authority, signers.is_empty()),
+    ];
+    for signer_pubkey in signers.iter() {
+        accounts.push(AccountMeta::new_readonly(**signer_pubkey, true));
+    }
+
+    let data = CreateSharesData { new_supply };
+
+    Ok(encode_instruction(
+        token_program_id,
+        accounts,
+        TokenInstruction::RebaseMintExtension,
+        RebaseMintInstruction::CreateShares,
         &data,
     ))
 }

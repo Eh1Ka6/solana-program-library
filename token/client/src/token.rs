@@ -1747,6 +1747,29 @@ where
         .await
     }
 
+     /// Rebase Supply
+     pub async fn create_shares<S: Signers>(
+        &self,
+        authority: &Pubkey,
+        new_supply: u16,
+        signing_keypairs: &S,
+    ) -> TokenResult<T::Output> {
+        let signing_pubkeys = signing_keypairs.pubkeys();
+        let multisig_signers = self.get_multisig_signers(authority, &signing_pubkeys);
+        println!("Running rebase_mint::instruction::create_shares");
+        self.process_ixs(
+            &[rebase_mint::instruction::create_shares(
+                &self.program_id,
+                self.get_address(),
+                authority,
+                &multisig_signers,
+                new_supply,
+            )?],
+            signing_keypairs,
+        )
+        .await
+    }
+
     /// Update transfer hook program id
     pub async fn update_transfer_hook_program_id<S: Signers>(
         &self,

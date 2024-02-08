@@ -522,6 +522,63 @@ async fn command_update_supply(
     })
 }
 
+async fn command_create_shares(
+    config: &Config<'_>,
+    token_pubkey: Pubkey,
+    supply_authority: Pubkey,
+    new_supply: u16,
+    bulk_signers: Vec<Arc<dyn Signer>>,
+) -> CommandResult {
+    let token = token_client_from_config(config, &token_pubkey, None)?;
+
+    if !config.sign_only {
+        let mint_account = config.get_account_checked(&token_pubkey).await?;
+
+        let mint_state = StateWithExtensionsOwned::<Mint>::unpack(mint_account.data)
+            .map_err(|_| format!("Could not deserialize token mint {}", token_pubkey))?;
+
+        if let Ok(rebase_config) = mint_state.get_extension::<RebaseMintConfig>() {
+            let mint_supply_authority_pubkey = Option::<Pubkey>::from(rebase_config.supply_authority);
+
+            if mint_supply_authority_pubkey != Some(supply_authority) {
+                return Err(format!(
+                    "Mint {} has supply authority {}, but {} was provided",
+                    token_pubkey,
+                    mint_supply_authority_pubkey
+                        .map(|pubkey| pubkey.to_string())
+                        .unwrap_or_else(|| "disabled".to_string()),
+                    supply_authority
+                )
+                .into());
+            }
+        } else {
+            return Err(format!("Mint {} does not have a rebase configuration", token_pubkey).into());
+        }
+    }
+
+    println_display(
+        config,
+        format!(
+            "creating new shares {} to {}",
+            token_pubkey, new_supply
+        ),
+    );
+
+    let res = token
+        .create_shares(&supply_authority, new_supply, &bulk_signers)
+        .await?;
+
+    let tx_return = finish_tx(config, &res, false).await?;
+    Ok(match tx_return {
+        TransactionReturnData::CliSignature(signature) => {
+            config.output_format.formatted_string(&signature)
+        }
+        TransactionReturnData::CliSignOnlyData(sign_only_data) => {
+            config.output_format.formatted_string(&sign_only_data)
+        }
+    })
+}
+
 
 async fn command_set_transfer_hook_program(
     config: &Config<'_>,
@@ -3582,6 +3639,24 @@ pub async fn process_command<'a>(
             let bulk_signers = vec![supply_authority_signer];
         
             command_update_supply(
+                config,
+                token_pubkey,
+                supply_authority_pubkey,
+                new_supply,
+                bulk_signers,
+            )
+            .await
+        }
+        (CommandName::CreateShares, arg_matches) => {
+            let token_pubkey = pubkey_of_signer(arg_matches, "token", &mut wallet_manager)
+                .unwrap()
+                .unwrap();
+            let new_supply = value_t_or_exit!(arg_matches, "new_supply", u16);
+            let (supply_authority_signer, supply_authority_pubkey) =
+                config.signer_or_default(arg_matches, "supply_authority", &mut wallet_manager);
+            let bulk_signers = vec![supply_authority_signer];
+        
+            command_create_shares(
                 config,
                 token_pubkey,
                 supply_authority_pubkey,
